@@ -25,20 +25,6 @@
 #include <algorithm>
 #include <vector>
 
-std::string intToBin(int decimalNum) {
-    if (decimalNum == 0) {
-        return "0";
-    }
-
-    std::string binaryString = "";
-    while (decimalNum > 0) {
-        binaryString += (decimalNum % 2 == 0 ? '0' : '1');
-        decimalNum /= 2;
-    }
-    std::reverse(binaryString.begin(), binaryString.end());
-    return binaryString;
-}
-
 
 #pragma pack(push, 1) // ensure no padding
 struct BITMAPFILEHEADER {
@@ -249,4 +235,5 @@ int main() {
   std::cin >> imgName;
 
   return 0;
+
 }
