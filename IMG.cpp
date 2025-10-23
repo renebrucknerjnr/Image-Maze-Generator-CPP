@@ -53,7 +53,7 @@ struct BITMAPINFOHEADER {
 // bottom-left to top-right
 // each scanline (row of pixels) must be padded w/ a multiple of 4 bytes
 
-void createImage(const unsigned char* rgbData, int width, int height, const char* fileName) {
+void createImage(const std::vector<unsigned char>& rgbData, int width, int height, const char* fileName) {
     int row_padded_size = (width * 3 + 3) & (~3); // mult of 4 bytes
     int image_size = row_padded_size * height;
 
@@ -106,7 +106,7 @@ void createImage(const unsigned char* rgbData, int width, int height, const char
     fclose(file);
 }
 
-void createMaze(char arr[], int width, int height) {
+void createMaze(std::vector<char>& arr, int width, int height) {
     // set array to unvisited
     for (int i = 0; i < width * height; i++) {
         arr[i] = 0;
@@ -117,9 +117,11 @@ void createMaze(char arr[], int width, int height) {
     for (int i = width-1; i < width*height; i+=width) arr[i] = 2;
 
     // create stack of visited and "neighborless" nodes
-    std::vector<unsigned int> stack = {(unsigned int)(1)}; // push_back(n); pop_back(); back();
+    std::vector<unsigned int> stack = {(unsigned int)(1 + width)}; // push_back(n); pop_back(); back();
 
-    arr[stack.back()] = 1; // set starting pos to visited
+    // set starting pos to visited
+    arr[1] = 1;
+    arr[stack.back()] = 1;
 
     while (true) {
         int currI = stack.back();
@@ -166,7 +168,7 @@ void createMaze(char arr[], int width, int height) {
         if (stack.size() <= 0) break;
     } // maze complete
 
-    if (arr[width*height-1 - width*1 - 1]==1) {
+    if (arr[width*height-1 - width*1 - 1]==1) { // open exit
         if (rand()%2) {
             arr[width*height-1 - 1] = 1;
         } else {
@@ -181,59 +183,114 @@ void createMaze(char arr[], int width, int height) {
     } else if (arr[width*height-1 - width*1 - 3]==1) {
         arr[width*height-1 - 3] = 1;
     }
-
 }
 
+void solveMaze(std::vector<char>& arr, int width, int height) {
+    // 1 = path
+    // 0 = wall
+    // 2 = outer edge wall
+    // 3 = solution
+
+    std::vector<unsigned int> stack = {(unsigned int)(1 + width)}; // push_back(n); pop_back(); back();
+    arr[1] = 3;
+    arr[stack.back()] = 3;
+
+    while (true) {
+        int currI = stack.back();
+
+        std::vector<char> availableDirs(0); // NESW
+        if ((currI - 2 >= 0) && (arr[currI - 1] == 1) && (arr[currI - 2] == 1))                   availableDirs.push_back('W');
+        if ((currI + 2 < width*height) && (arr[currI + 1] == 1) && (arr[currI + 2] == 1))         availableDirs.push_back('E');
+        if ((currI - width*2 >= 0) && (arr[currI - width*1] == 1) && (arr[currI - width*2] == 1))           availableDirs.push_back('N');
+        if ((currI + width*2 < width*height) && (arr[currI + width*1] == 1) && (arr[currI + width*2] == 1)) availableDirs.push_back('S');
+    
+        if (availableDirs.size()) { // not surrounded
+            char choice = availableDirs[rand()%availableDirs.size()];
+
+            switch (choice) {
+            case 'N':
+                arr[currI-width] = 3;
+                currI = currI - width*2;
+                break;
+
+            case 'E':
+                arr[currI+1] = 3;
+                currI = currI + 2;
+                break;
+
+            case 'S':
+                arr[currI+width] = 3;
+                currI = currI + width*2;
+                break;
+
+            case 'W':
+                arr[currI-1] = 3;
+                currI = currI - 2;
+                break;
+
+            default:break;}
+
+            arr[currI] = 3;
+            stack.push_back(currI);
+                    
+        } else {
+            stack.pop_back(); // no open neighbors
+        }
+
+        if (stack.size() <= 0 || currI == width*height-1-width) break;
+    } // maze solved
+};
 
 
 int main() {
-  srand(time(0));
+    srand(time(0));
 
-  // char 1 byte
-  // int 4 bytes
-  int imgW = 20;
-  int imgH = 21;
-  std::string imgName = "Test.bmp";
+    // char 1 byte
+    // int 4 bytes
+    int imgW = 64;
+    int imgH = 36;
+    std::string imgName = "Tester.bmp";
 
-  // get user input
-  std::cout << "Image-Maze-Generator  Copyright (C) 2025  Rene Bruckner" << std::flush;
-  std::cout << "This program comes with ABSOLUTELY NO WARRANTY." << std::flush;
-  std::cout << "This is free software, and you are welcome to redistribute it" << std::flush;
-  std::cout << "under certain conditions; GNU General Public License." << std::flush;
-  std::cout << std::endl << "Enter your desired width: " << std::flush;
-  std::cin >> imgW;
-  std::cout << std::endl << "Enter your desired height: " << std::flush;
-  std::cin >> imgH;
-  std::cout << std::endl << "Enter your desired file name for the " << imgW << "x" << imgH << " bmp (include .bmp at end): " << std::flush;
-  std::cin >> imgName;
-  std::cout << std::endl;
+    // get user input
+    std::cout << "Image-Maze-Generator  Copyright (C) 2025  Rene Bruckner" << std::flush;
+    std::cout << "This program comes with ABSOLUTELY NO WARRANTY." << std::flush;
+    std::cout << "This is free software, and you are welcome to redistribute it" << std::flush;
+    std::cout << "under certain conditions; GNU General Public License." << std::flush;
+    std::cout << std::endl << "Enter your desired width: " << std::flush;
+    std::cin >> imgW;
+    std::cout << std::endl << "Enter your desired height: " << std::flush;
+    std::cin >> imgH;
+    std::cout << std::endl << "Enter your desired file name for the " << imgW << "x" << imgH << " bmp (include .bmp at end): " << std::flush;
+    std::cin >> imgName;
+    std::cout << std::endl;
 
-  imgW = std::max(imgW + (1 - imgW % 2), 5);
-  imgH = std::max(imgH + (1 - imgH % 2), 5);
+    imgW = std::min(std::max(imgW + (1 - imgW % 2), 5), 3840);
+    imgH = std::min(std::max(imgH + (1 - imgH % 2), 5), 3840);
 
-  char mazeArr[imgW*imgH]; // generate maze
-  createMaze(mazeArr, imgW, imgH);
+    std::vector<char> mazeArr(imgW*imgH); // generate maze
+    createMaze(mazeArr, imgW, imgH);
 
-  int dataLength = imgW*imgH*3;
-  unsigned char data[dataLength]; // rgb(a)
-  for (int i = 0; i < dataLength; i+=3) {
-    
-    // 1 = path, 0 = wall, 2 = outer edge wall
-    char c = mazeArr[i/3];
-    // data[i + 0] = (c == 1 ? rand()%255 : 0);
-    data[i + 0] = (c == 1 ? 255 : 0);
-    data[i + 1] = (c == 1 ? 255 : 0);
-    data[i + 2] = (c == 1 ? 255 : 0);
-  }
+    // solveMaze(mazeArr, imgW, imgH);
 
-  std::cout << "started on \"" << imgName << "\"..." << std::endl;
-  createImage(data, imgW, imgH, imgName.c_str());
-  std::cout << "Done!" << std::endl;
-  std::cout << std::endl << "Use the following in the development mode of a browser to view small mazes (after opening maze.bmp in new tab):" << std::endl;
-  std::cout << "document.getElementsByTagName(\"img\")[0].style.width=\"100vw\";document.getElementsByTagName(\"img\")[0].style.height=\"100vh\";" << std::endl;
-  std::cout << std::endl << "Press enter to exit..." << std::flush;
-  std::cin >> imgName;
+    int dataLength = imgW*imgH*3;
+    std::vector<unsigned char> data(dataLength); // rgb(a)
+    for (int i = 0; i < dataLength; i+=3) {
 
-  return 0;
+        // 1 = path, 0 = wall, 2 = outer edge wall, 3 = solution
+        char c = mazeArr[i/3];
+        // data[i + 0] = (c == 1 ? rand()%255 : 0);
+        data[i + 0] = (c == 1 ? 255 : (c == 3 ? 128 : 0));
+        data[i + 1] = (c == 1 ? 255 : (c == 3 ? 0 : 0));
+        data[i + 2] = (c == 1 ? 255 : (c == 3 ? 0 : 0));
+    }
 
+    std::cout << "started on \"" << imgName << "\"..." << std::endl;
+    createImage(data, imgW, imgH, imgName.c_str());
+    std::cout << "Done!" << std::endl;
+    std::cout << std::endl << "Use the following in the development mode of a browser to view small mazes (after opening maze.bmp in new tab):" << std::endl;
+    std::cout << "document.getElementsByTagName(\"img\")[0].style.width=\"100vw\";document.getElementsByTagName(\"img\")[0].style.height=\"100vh\";" << std::endl;
+    std::cout << std::endl << "Press enter to exit..." << std::flush;
+    std::cin >> imgName;
+
+    return 0;
 }
