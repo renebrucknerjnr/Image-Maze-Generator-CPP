@@ -8,3 +8,5 @@ Maze generation in C++, using <u>Recursive Backtracker</u> (<u>Depth-first Searc
 ---
 <img src="https://github.com/renebrucknerjnr/Image-Maze-Generator-CPP/blob/b9137ea662d81067491e066ddeb36387eecd999f/test (2).bmp" width="320px">
 <img src="https://github.com/renebrucknerjnr/Image-Maze-Generator-CPP/blob/b9137ea662d81067491e066ddeb36387eecd999f/test (3).bmp" width="320px">
+
+> If you input a width, height, and filename but <strong>no maze is generated</strong>, try using <strong>smaller width and height</strong>. It's probably something to do with cpp arrays.
