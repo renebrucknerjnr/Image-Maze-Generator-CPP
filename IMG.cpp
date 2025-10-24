@@ -106,6 +106,23 @@ void createImage(const std::vector<unsigned char>& rgbData, int width, int heigh
     fclose(file);
 }
 
+void mazeToImage(const std::vector<char>& maze, int width, int height, std::string fileName) {
+    int dataLength = width*height*3;
+    std::vector<unsigned char> data(dataLength); // rgb(a)
+    for (int i = 0; i < dataLength; i+=3) {
+        // 1 = path, 0 = wall, 2 = solution
+        char c = maze[i/3];
+        // data[i + 0] = (c == 1 ? rand()%255 : 0);
+        data[i + 0] = (c == 0 ? 0 : (c == 1 ? 255 : 128));
+        data[i + 1] = (c == 0 ? 0 : (c == 1 ? 255 : 128));
+        data[i + 2] = (c == 0 ? 0 : (c == 1 ? 255 : 128));
+    }
+
+    std::cout << "creating \"" << fileName << "\" as image..." << std::endl;
+    createImage(data, width, height, fileName.c_str());
+    std::cout << "Done!" << std::endl;
+}
+
 void createMaze(std::vector<char>& arr, int width, int height) {
     // set array to unvisited
     for (int i = 0; i < width * height; i++) {
@@ -168,6 +185,13 @@ void createMaze(std::vector<char>& arr, int width, int height) {
         if (stack.size() <= 0) break;
     } // maze complete
 
+    // fill edges with walls (not neccessary, but I like)
+    for (int i = 0; i < width; i++) if (arr[i]==2) arr[i] = 0;
+    for (int i = width*height-width; i < width*height; i++) if (arr[i]==2) arr[i] = 0;
+    for (int i = 0; i < width*height; i+=width) if (arr[i]==2) arr[i] = 0;
+    for (int i = width-1; i < width*height; i+=width) if (arr[i]==2) arr[i] = 0;
+    arr[1] = 1;
+
     if (arr[width*height-1 - width*1 - 1]==1) { // open exit
         if (rand()%2) {
             arr[width*height-1 - 1] = 1;
@@ -188,13 +212,15 @@ void createMaze(std::vector<char>& arr, int width, int height) {
 void solveMaze(std::vector<char>& arr, int width, int height) {
     // 1 = path
     // 0 = wall
-    // 2 = outer edge wall
-    // 3 = solution
+    // 2 = solution
 
     std::vector<unsigned int> stack = {(unsigned int)(1 + width)}; // push_back(n); pop_back(); back();
-    arr[1] = 3;
-    arr[stack.back()] = 3;
+    arr[1] = 2;
+    arr[stack.back()] = 2;
 
+    int lastI = stack.back();
+
+    // go through maze, starting at start, until end found
     while (true) {
         int currI = stack.back();
 
@@ -205,32 +231,45 @@ void solveMaze(std::vector<char>& arr, int width, int height) {
         if ((currI + width*2 < width*height) && (arr[currI + width*1] == 1) && (arr[currI + width*2] == 1)) availableDirs.push_back('S');
     
         if (availableDirs.size()) { // not surrounded
+            lastI = currI;
             char choice = availableDirs[rand()%availableDirs.size()];
 
             switch (choice) {
             case 'N':
-                arr[currI-width] = 3;
+                arr[currI-width] = 7;
                 currI = currI - width*2;
                 break;
 
             case 'E':
-                arr[currI+1] = 3;
+                arr[currI+1] = 7;
                 currI = currI + 2;
                 break;
 
             case 'S':
-                arr[currI+width] = 3;
+                arr[currI+width] = 7;
                 currI = currI + width*2;
                 break;
 
             case 'W':
-                arr[currI-1] = 3;
+                arr[currI-1] = 7;
                 currI = currI - 2;
                 break;
 
             default:break;}
 
-            arr[currI] = 3;
+            // set parrent
+            if (currI == lastI) { // start
+                arr[currI] = 2;
+            } else if (currI == lastI - width*2) { // current N of last
+                arr[currI] = 3;
+            } else if (currI == lastI + 2) { // current E of last
+                arr[currI] = 4;
+            } else if (currI == lastI + width*2) { // current S of last
+                arr[currI] = 5;
+            } else if (currI == lastI - 2) { // current W of last
+                arr[currI] = 6;
+            }
+
             stack.push_back(currI);
                     
         } else {
@@ -238,8 +277,43 @@ void solveMaze(std::vector<char>& arr, int width, int height) {
         }
 
         if (stack.size() <= 0 || currI == width*height-1-width) break;
-    } // maze solved
-};
+    } // maze filled
+
+    // start at end, trace back through parrents to find solution
+    int currI = width * height - width - 2;
+    while (true) {
+        if (arr[currI] == 3) { // move S
+            arr[currI] = 2;
+            arr[currI + width] = 2;
+            currI = currI + width*2;
+        } else if (arr[currI] == 4) { // move W
+            arr[currI] = 2;
+            arr[currI - 1] = 2;
+            currI = currI - 2;            
+        } else if (arr[currI] == 5) { // move N
+            arr[currI] = 2;
+            arr[currI - width] = 2;
+            currI = currI - width*2;            
+        } else if (arr[currI] == 6) { // move E
+            arr[currI] = 2;
+            arr[currI + 1] = 2;
+            currI = currI + 2;            
+        } else {
+            arr[currI] = 2;
+            break;
+        }
+        
+    }
+
+    // clear temp values to normal traversable path cell
+    for (int i = 0; i < arr.size(); i++) {
+        if (arr[i] != 0 && arr[i] != 1 && arr[i] != 2) arr[i] = 1;
+    }
+
+    // set maze exit as solution, instead of normal path
+    for (int i = width * height - 1 - 2; i < width*height; i++) if (arr[i]==1) arr[i] = 2;
+    for (int i = width * height - 1 - width*2; i < width*height; i+=width) if (arr[i]==1) arr[i] = 2;
+}
 
 
 int main() {
@@ -249,6 +323,7 @@ int main() {
     // int 4 bytes
     int imgW = 64;
     int imgH = 36;
+    bool makeSolution = true;
     std::string imgName = "Tester.bmp";
 
     // get user input
@@ -256,37 +331,37 @@ int main() {
     std::cout << "This program comes with ABSOLUTELY NO WARRANTY." << std::flush;
     std::cout << "This is free software, and you are welcome to redistribute it" << std::flush;
     std::cout << "under certain conditions; GNU General Public License." << std::flush;
+    
     std::cout << std::endl << "Enter your desired width: " << std::flush;
     std::cin >> imgW;
+
     std::cout << std::endl << "Enter your desired height: " << std::flush;
     std::cin >> imgH;
+
     std::cout << std::endl << "Enter your desired file name for the " << imgW << "x" << imgH << " bmp (include .bmp at end): " << std::flush;
     std::cin >> imgName;
+
+    std::cout << std::endl << "Enter 0 if you don't want to generate solution, else 1: " << std::flush;
+    std::cin >> makeSolution;
+
     std::cout << std::endl;
 
-    imgW = std::min(std::max(imgW + (1 - imgW % 2), 5), 3840);
-    imgH = std::min(std::max(imgH + (1 - imgH % 2), 5), 3840);
+    imgW = std::min(std::max(imgW + (1 - imgW % 2), 5), 3841);
+    imgH = std::min(std::max(imgH + (1 - imgH % 2), 5), 3841);
 
+
+    std::cout << "generating..." << std::endl;
     std::vector<char> mazeArr(imgW*imgH); // generate maze
     createMaze(mazeArr, imgW, imgH);
+    mazeToImage(mazeArr, imgW, imgH, imgName);
 
-    // solveMaze(mazeArr, imgW, imgH);
-
-    int dataLength = imgW*imgH*3;
-    std::vector<unsigned char> data(dataLength); // rgb(a)
-    for (int i = 0; i < dataLength; i+=3) {
-
-        // 1 = path, 0 = wall, 2 = outer edge wall, 3 = solution
-        char c = mazeArr[i/3];
-        // data[i + 0] = (c == 1 ? rand()%255 : 0);
-        data[i + 0] = (c == 1 ? 255 : (c == 3 ? 128 : 0));
-        data[i + 1] = (c == 1 ? 255 : (c == 3 ? 0 : 0));
-        data[i + 2] = (c == 1 ? 255 : (c == 3 ? 0 : 0));
+    if (makeSolution) {
+        std::cout << "solving..." << std::endl;
+        std::vector<char> mazeArrSolved = mazeArr; // generate maze
+        solveMaze(mazeArrSolved, imgW, imgH);
+        mazeToImage(mazeArrSolved, imgW, imgH, ("SOLVED_" + imgName));        
     }
-
-    std::cout << "started on \"" << imgName << "\"..." << std::endl;
-    createImage(data, imgW, imgH, imgName.c_str());
-    std::cout << "Done!" << std::endl;
+    
     std::cout << std::endl << "Use the following in the development mode of a browser to view small mazes (after opening maze.bmp in new tab):" << std::endl;
     std::cout << "document.getElementsByTagName(\"img\")[0].style.width=\"100vw\";document.getElementsByTagName(\"img\")[0].style.height=\"100vh\";" << std::endl;
     std::cout << std::endl << "Press enter to exit..." << std::flush;
