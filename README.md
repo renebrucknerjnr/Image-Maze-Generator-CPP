@@ -1,5 +1,5 @@
 # Image-Maze-Generator-CPP
-Maze generation in C++, using <u>Recursive Backtracker</u> (<u>Depth-first Search</u>).<br>Input `width`, `height`, `file name`, and whether or not you wish to generate the `solution`, and out pops a `.bmp` (or two) with each pixel as a maze cell.
+Maze generation in C++, using <u>Recursive Backtracker</u> (<u>Depth-first Search</u>).<br><br>Input `width`, `height`, `file name`, and whether or not you wish to generate the `solution`, and out pops a `.bmp` (or two) with each pixel as a maze cell.
 <hr><strong>`.bmp` formatted files are easily printable, as well as digitally viewable.</strong>
 
 ![Image 1](Tester.bmp)
